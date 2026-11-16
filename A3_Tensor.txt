@@ -1,0 +1,768 @@
+#%pip install tensorflow numpy matplotlib scikit-learn
+
+
+# local dataset
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import struct
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.regularizers import l2
+from sklearn.model_selection import train_test_split
+
+# Load images
+def load_images(file):
+    with open(file, 'rb') as f:
+        magic, num, rows, cols = struct.unpack('>IIII', f.read(16))
+        images = np.frombuffer(f.read(), dtype=np.uint8)
+    return images.reshape(num, rows, cols)
+
+# Load labels
+def load_labels(file):
+    with open(file, 'rb') as f:
+        magic, num = struct.unpack('>II', f.read(8))
+        labels = np.frombuffer(f.read(), dtype=np.uint8)
+    return labels
+
+# Load MNIST dataset
+x_train = load_images('MNIST/train-images-idx3-ubyte')
+y_train = load_labels('MNIST/train-labels-idx1-ubyte')
+x_test = load_images('MNIST/t10k-images-idx3-ubyte')
+y_test = load_labels('MNIST/t10k-labels-idx1-ubyte')
+'''
+# Step 2: Load Local MNIST Dataset
+data = np.load('mnist.npz')
+
+x_train = data['x_train']
+y_train = data['y_train']
+x_test = data['x_test']
+y_test = data['y_test']
+
+print("Training Data:", x_train.shape)
+print("Testing Data:", x_test.shape)
+'''
+(x_train, y_train), (x_test, y_test) = (
+    (np.fromfile('MNIST/train-images-idx3-ubyte', np.uint8)[16:].reshape(-1, 28, 28),
+     np.fromfile('MNIST/train-labels-idx1-ubyte', np.uint8)[8:]),
+    (np.fromfile('MNIST/t10k-images-idx3-ubyte', np.uint8)[16:].reshape(-1, 28, 28),
+     np.fromfile('MNIST/t10k-labels-idx1-ubyte', np.uint8)[8:])
+)
+'''
+'''
+# Flatten and normalize
+x_train = x_train.reshape(-1, 784) / 255.0
+x_test = x_test.reshape(-1, 784) / 255.0
+
+# Split training and validation data
+x_train, x_val, y_train, y_val = train_test_split(
+    x_train, y_train, test_size=0.1, random_state=42
+)
+
+# Normal model
+model1 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model1.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history1 = model1.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# L2 Regularization model
+model2 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu', kernel_regularizer=l2(0.001)),
+    Dense(10, activation='softmax')
+])
+
+model2.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history2 = model2.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# Dropout model
+model3 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dropout(0.3),
+    Dense(10, activation='softmax')
+])
+
+model3.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history3 = model3.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# Evaluate models
+acc1 = model1.evaluate(x_test, y_test, verbose=0)[1]
+acc2 = model2.evaluate(x_test, y_test, verbose=0)[1]
+acc3 = model3.evaluate(x_test, y_test, verbose=0)[1]
+
+print("Normal Model Accuracy:", acc1 * 100, "%")
+print("L2 Model Accuracy:", acc2 * 100, "%")
+print("Dropout Model Accuracy:", acc3 * 100, "%")
+
+# Accuracy comparison
+plt.bar(['Normal', 'L2', 'Dropout'],
+        [acc1*100, acc2*100, acc3*100])
+plt.title("Comparison of Model Accuracy")
+plt.xlabel("Regularization Techniques")
+plt.ylabel("Accuracy (%)")
+plt.show()
+
+# Validation loss comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_loss'], label='Normal')
+plt.plot(history2.history['val_loss'], label='L2')
+plt.plot(history3.history['val_loss'], label='Dropout')
+plt.title("Validation Loss Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.legend()
+plt.show()
+
+# Validation accuracy comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_accuracy'], label='Normal')
+plt.plot(history2.history['val_accuracy'], label='L2')
+plt.plot(history3.history['val_accuracy'], label='Dropout')
+plt.title("Validation Accuracy Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.show()
+
+
+# mnist npz
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.regularizers import l2
+from sklearn.model_selection import train_test_split
+
+# Load MNIST dataset
+data = np.load('mnist.npz')
+
+x_train = data['x_train']
+y_train = data['y_train']
+x_test = data['x_test']
+y_test = data['y_test']
+
+# Flatten and normalize
+x_train = x_train.reshape(-1, 784) / 255.0
+x_test = x_test.reshape(-1, 784) / 255.0
+
+# Split training and validation data
+x_train, x_val, y_train, y_val = train_test_split(
+    x_train, y_train, test_size=0.1, random_state=42
+)
+
+# Normal model
+model1 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model1.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history1 = model1.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# L2 Regularization model
+model2 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu', kernel_regularizer=l2(0.001)),
+    Dense(10, activation='softmax')
+])
+
+model2.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history2 = model2.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# Dropout model
+model3 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dropout(0.3),
+    Dense(10, activation='softmax')
+])
+
+model3.compile(optimizer='adam',
+               loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history3 = model3.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+# Evaluate models
+acc1 = model1.evaluate(x_test, y_test, verbose=0)[1]
+acc2 = model2.evaluate(x_test, y_test, verbose=0)[1]
+acc3 = model3.evaluate(x_test, y_test, verbose=0)[1]
+
+print("Normal Model Accuracy:", acc1 * 100, "%")
+print("L2 Model Accuracy:", acc2 * 100, "%")
+print("Dropout Model Accuracy:", acc3 * 100, "%")
+
+# Accuracy comparison
+plt.bar(['Normal', 'L2', 'Dropout'],
+        [acc1*100, acc2*100, acc3*100])
+plt.title("Comparison of Model Accuracy")
+plt.xlabel("Regularization Techniques")
+plt.ylabel("Accuracy (%)")
+plt.show()
+
+# Validation loss comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_loss'], label='Normal')
+plt.plot(history2.history['val_loss'], label='L2')
+plt.plot(history3.history['val_loss'], label='Dropout')
+plt.title("Validation Loss Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# Validation accuracy comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_accuracy'], label='Normal')
+plt.plot(history2.history['val_accuracy'], label='L2')
+plt.plot(history3.history['val_accuracy'], label='Dropout')
+plt.title("Validation Accuracy Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.grid(True)
+plt.legend()
+plt.show()   
+
+# printing all the values .............................
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.regularizers import l2
+from sklearn.model_selection import train_test_split
+
+# Load dataset
+data = np.load('mnist.npz')
+
+x_train = data['x_train']
+y_train = data['y_train']
+x_test = data['x_test']
+y_test = data['y_test']
+
+print("Training data:", x_train.shape)
+print("Testing data:", x_test.shape)
+
+# Flatten and normalize
+x_train = x_train.reshape(-1, 784) / 255.0
+x_test = x_test.reshape(-1, 784) / 255.0
+
+# Split training and validation data
+x_train, x_val, y_train, y_val = train_test_split(
+    x_train, y_train, test_size=0.1, random_state=42
+)
+
+print("Training:", x_train.shape)
+print("Validation:", x_val.shape)
+
+# Normal model
+model1 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model1.compile(optimizer='adam', loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history1 = model1.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+print("Normal model training completed!")
+
+# L2 model
+model2 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu', kernel_regularizer=l2(0.001)),
+    Dense(10, activation='softmax')
+])
+
+model2.compile(optimizer='adam', loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history2 = model2.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+print("L2 model training completed!")
+
+# Dropout model
+model3 = Sequential([
+    tf.keras.Input(shape=(784,)),
+    Dense(128, activation='relu'),
+    Dropout(0.3),
+    Dense(10, activation='softmax')
+])
+
+model3.compile(optimizer='adam', loss='sparse_categorical_crossentropy',
+               metrics=['accuracy'])
+
+history3 = model3.fit(x_train, y_train, epochs=5, batch_size=128,
+                      validation_data=(x_val, y_val))
+
+print("Dropout model training completed!")
+
+# Evaluate models
+acc1 = model1.evaluate(x_test, y_test, verbose=0)[1]
+acc2 = model2.evaluate(x_test, y_test, verbose=0)[1]
+acc3 = model3.evaluate(x_test, y_test, verbose=0)[1]
+
+print("\nNormal Model Accuracy:", acc1 * 100, "%")
+print("L2 Model Accuracy:", acc2 * 100, "%")
+print("Dropout Model Accuracy:", acc3 * 100, "%")
+
+# Accuracy comparison
+plt.bar(['Normal', 'L2', 'Dropout'], [acc1*100, acc2*100, acc3*100])
+plt.title("Comparison of Model Accuracy")
+plt.xlabel("Regularization Techniques")
+plt.ylabel("Accuracy (%)")
+plt.show()
+
+# Validation loss comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_loss'], label='Normal')
+plt.plot(history2.history['val_loss'], label='L2')
+plt.plot(history3.history['val_loss'], label='Dropout')
+plt.title("Validation Loss Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.legend()
+plt.show()
+
+# Validation accuracy comparison
+plt.figure(figsize=(10, 5))
+plt.plot(history1.history['val_accuracy'], label='Normal')
+plt.plot(history2.history['val_accuracy'], label='L2')
+plt.plot(history3.history['val_accuracy'], label='Dropout')
+plt.title("Validation Accuracy Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.show()
+
+# 1. Import Libraries
+import tensorflow as tf
+from tensorflow.keras import layers, models, regularizers
+import matplotlib.pyplot as plt
+
+# 2. Load MNIST Dataset
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# Normalize data
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+
+
+# 3. Define Model Architecture
+def create_model(l2_reg=False, dropout=False):
+
+    model = models.Sequential([
+        layers.Flatten(input_shape=(28, 28)),
+
+        layers.Dense(
+            256,
+            activation='relu',
+            kernel_regularizer=regularizers.l2(0.0001) if l2_reg else None
+        ),
+
+        layers.Dropout(0.5) if dropout else layers.Activation('linear'),
+
+        layers.Dense(10, activation='softmax')
+    ])
+
+    return model
+
+
+# 4. Training and Evaluation Function
+def train_and_evaluate(model, epochs=10):
+
+    model.compile(
+        optimizer=tf.keras.optimizers.SGD(learning_rate=0.1),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    history = model.fit(
+        x_train, y_train,
+        epochs=epochs,
+        batch_size=64,
+        validation_data=(x_test, y_test),
+        verbose=1
+    )
+
+    return (
+        history.history['loss'],
+        history.history['val_loss'],
+        history.history['accuracy'],
+        history.history['val_accuracy']
+    )
+
+
+# 5. Train Models
+results = {}
+
+# a. Baseline (Without Regularization)
+model = create_model()
+
+print("Training Baseline...")
+results["Baseline"] = train_and_evaluate(model)
+
+
+# b. L2 Regularization
+model_l2 = create_model(l2_reg=True)
+
+print("\nTraining with L2 Regularization...")
+results["L2"] = train_and_evaluate(model_l2)
+
+
+# c. Dropout Regularization
+model_dropout = create_model(dropout=True)
+
+print("\nTraining with Dropout...")
+results["Dropout"] = train_and_evaluate(model_dropout)
+
+
+# 6. Plotting
+epochs = range(1, 11)
+
+
+def plot_metric(metric_idx, title, ylabel):
+
+    plt.figure(figsize=(10, 5))
+
+    for label, (tl, vl, ta, va) in results.items():
+
+        if metric_idx == 0:
+            train_metric = tl
+            val_metric = vl
+        else:
+            train_metric = ta
+            val_metric = va
+
+        plt.plot(epochs, train_metric, label=f"{label} - Train")
+        plt.plot(epochs, val_metric, linestyle='--',
+                 label=f"{label} - Validation")
+
+    plt.title(title)
+    plt.xlabel("Epochs")
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+# 7. Visualize Loss and Accuracy
+plot_metric(0, "Loss Comparison", "Loss")
+plot_metric(1, "Accuracy Comparison", "Accuracy")
+
+#
+local
+
+# 1. Import Libraries
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+import struct
+import os
+
+from tensorflow.keras import layers, models, regularizers
+
+# 2. Load MNIST Dataset from Local Folder
+path = "mnist"
+
+def load_images(file):
+    with open(os.path.join(path, file), 'rb') as f:
+        magic, count, rows, cols = struct.unpack(">IIII", f.read(16))
+        images = np.frombuffer(f.read(), dtype=np.uint8)
+        return images.reshape(count, rows, cols)
+
+def load_labels(file):
+    with open(os.path.join(path, file), 'rb') as f:
+        magic, count = struct.unpack(">II", f.read(8))
+        return np.frombuffer(f.read(), dtype=np.uint8)
+
+x_train = load_images("train-images-idx3-ubyte")
+y_train = load_labels("train-labels-idx1-ubyte")
+x_test = load_images("t10k-images-idx3-ubyte")
+y_test = load_labels("t10k-labels-idx1-ubyte")
+
+# 3. Normalize Data
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+print("Training Data:", x_train.shape)
+print("Testing Data:", x_test.shape)
+
+# 4. Define Model Architecture
+def create_model(l2_reg=False, dropout=False):
+
+    model = models.Sequential([
+        layers.Input(shape=(28, 28)),
+        layers.Flatten(),
+
+        layers.Dense(
+            256,
+            activation='relu',
+            kernel_regularizer=regularizers.l2(0.0001) if l2_reg else None
+        ),
+
+        layers.Dropout(0.5) if dropout else layers.Activation('linear'),
+
+        layers.Dense(10, activation='softmax')
+    ])
+
+    return model
+
+# 5. Training and Evaluation Function
+def train_and_evaluate(model, epochs=10):
+
+    model.compile(
+        optimizer=tf.keras.optimizers.SGD(learning_rate=0.1),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    history = model.fit(
+        x_train, y_train,
+        epochs=epochs,
+        batch_size=64,
+        validation_split=0.2,
+        verbose=1
+    )
+
+    return history
+
+# 6. Train Models
+results = {}
+
+# Without Regularization
+print("\nTraining Baseline...")
+model = create_model()
+results["Baseline"] = train_and_evaluate(model)
+
+# With L2 Regularization
+print("\nTraining with L2...")
+model_l2 = create_model(l2_reg=True)
+results["L2"] = train_and_evaluate(model_l2)
+
+# With Dropout
+print("\nTraining with Dropout...")
+model_dropout = create_model(dropout=True)
+results["Dropout"] = train_and_evaluate(model_dropout)
+
+# 7. Plot Training and Validation Loss
+plt.figure(figsize=(10, 5))
+
+for name, history in results.items():
+    plt.plot(history.history['loss'], label=name + ' Train')
+    plt.plot(history.history['val_loss'], '--', label=name + ' Validation')
+
+plt.title("Loss Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.legend()
+plt.grid()
+plt.show()
+
+# 8. Plot Training and Validation Accuracy
+plt.figure(figsize=(10, 5))
+
+for name, history in results.items():
+    plt.plot(history.history['accuracy'], label=name + ' Train')
+    plt.plot(history.history['val_accuracy'], '--', label=name + ' Validation')
+
+plt.title("Accuracy Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid()
+plt.show()
+
+
+# mnist npz 
+
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras import layers, regularizers
+
+# Load MNIST dataset
+data = np.load('mnist.npz')
+x_train, y_train = data['x_train'], data['y_train']
+x_test, y_test = data['x_test'], data['y_test']
+
+# Normalize data
+x_train, x_test = x_train / 255.0, x_test / 255.0
+
+# Create model
+def create_model(reg=None, drop=False):
+    model = tf.keras.Sequential([
+        layers.Flatten(input_shape=(28, 28)),
+        layers.Dense(128, activation='relu', kernel_regularizer=reg),
+        layers.Dropout(0.5) if drop else layers.Activation('linear'),
+        layers.Dense(10, activation='softmax')
+    ])
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+    return model
+
+# Train models
+models = {
+    'Normal': create_model(),
+    'L2': create_model(regularizers.l2(0.0001)),
+    'Dropout': create_model(drop=True)
+}
+
+history = {}
+for name, model in models.items():
+    history[name] = model.fit(x_train, y_train, epochs=5, batch_size=64,
+                              validation_split=0.2, verbose=1)
+
+# Evaluate models
+for name, model in models.items():
+    print(name, model.evaluate(x_test, y_test, verbose=0))
+
+# Plot accuracy and loss
+for metric in ['accuracy', 'loss']:
+    for name, h in history.items():
+        plt.plot(h.history[metric], label=name)
+    plt.title(metric.capitalize())
+    plt.xlabel('Epochs')
+    plt.ylabel(metric)
+    plt.legend()
+    plt.show()
+
+****
+# 1. Import Libraries
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras import layers, models, regularizers
+
+# 2. Load MNIST Dataset
+data = np.load('mnist.npz')
+
+x_train = data['x_train']
+y_train = data['y_train']
+x_test = data['x_test']
+y_test = data['y_test']
+
+# 3. Normalize Data
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+# 4. Define Model Architecture
+def create_model(l2_reg=False, dropout=False):
+
+    model = models.Sequential([
+        layers.Input(shape=(28, 28)),
+        layers.Flatten(),
+
+        layers.Dense(
+            256,
+            activation='relu',
+            kernel_regularizer=regularizers.l2(0.0001) if l2_reg else None
+        ),
+
+        layers.Dropout(0.5) if dropout else layers.Activation('linear'),
+
+        layers.Dense(10, activation='softmax')
+    ])
+
+    return model
+
+# 5. Training and Evaluation Function
+def train_and_evaluate(model, epochs=10):
+
+    model.compile(
+        optimizer=tf.keras.optimizers.SGD(learning_rate=0.1),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    history = model.fit(
+        x_train, y_train,
+        epochs=epochs,
+        batch_size=64,
+        validation_split=0.2,
+        verbose=1
+    )
+
+    return history
+
+# 6. Train Models
+results = {}
+
+print("\nTraining Baseline...")
+model = create_model()
+results["Baseline"] = train_and_evaluate(model)
+
+print("\nTraining with L2...")
+model_l2 = create_model(l2_reg=True)
+results["L2"] = train_and_evaluate(model_l2)
+
+print("\nTraining with Dropout...")
+model_dropout = create_model(dropout=True)
+results["Dropout"] = train_and_evaluate(model_dropout)
+
+# 7. Plot Training and Validation Loss
+plt.figure(figsize=(10, 5))
+
+for name, history in results.items():
+    plt.plot(history.history['loss'], label=name + ' Train')
+    plt.plot(history.history['val_loss'], '--', label=name + ' Validation')
+
+plt.title("Loss Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.legend()
+plt.grid()
+plt.show()
+
+# 8. Plot Training and Validation Accuracy
+plt.figure(figsize=(10, 5))
+
+for name, history in results.items():
+    plt.plot(history.history['accuracy'], label=name + ' Train')
+    plt.plot(history.history['val_accuracy'], '--', label=name + ' Validation')
+
+plt.title("Accuracy Comparison")
+plt.xlabel("Epochs")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid()
+plt.show()

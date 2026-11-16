@@ -108,3 +108,129 @@ plt.show()
 '''
 %load_ext tensorboard
 %tensorboard --logdir logs   
+
+
+#  for using online data
+
+
+# Step 1: Import Libraries
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.datasets import mnist
+
+# Step 2: Load MNIST Dataset
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+'''path = "MNIST"
+
+x_train = np.fromfile(os.path.join(path, "train-images-idx3-ubyte"), np.uint8)[16:].reshape(-1, 28, 28)
+y_train = np.fromfile(os.path.join(path, "train-labels-idx1-ubyte"), np.uint8)[8:]
+
+x_test = np.fromfile(os.path.join(path, "t10k-images-idx3-ubyte"), np.uint8)[16:].reshape(-1, 28, 28)
+y_test = np.fromfile(os.path.join(path, "t10k-labels-idx1-ubyte"), np.uint8)[8:]
+'''
+# Step 3: Normalize Data
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+
+# Step 4: Define Hyperparameter Configurations
+configs = [
+    {"lr": 0.01, "batch": 32, "layers": 1},
+    {"lr": 0.001, "batch": 64, "layers": 2},
+    {"lr": 0.0001, "batch": 128, "layers": 3}
+]
+
+results = []
+
+# Step 5: Train Models with Different Hyperparameters
+for i, config in enumerate(configs):
+
+    model = Sequential()
+    model.add(Flatten(input_shape=(28, 28)))
+
+    for j in range(config["layers"]):
+        model.add(Dense(128, activation='relu'))
+
+    model.add(Dense(10, activation='softmax'))
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=config["lr"]
+        ),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    # TensorBoard Logging
+    log_dir = f"logs/experiment_{i+1}"
+
+    tensorboard = TensorBoard(log_dir=log_dir)
+
+    print(f"\nTraining Experiment {i+1}")
+
+    history = model.fit(
+        x_train, y_train,
+        epochs=5,
+        batch_size=config["batch"],
+        validation_split=0.2,
+        callbacks=[tensorboard],
+        verbose=1
+    )
+
+    # Evaluate Model
+    loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
+
+    results.append([
+        config["lr"],
+        config["batch"],
+        config["layers"],
+        accuracy,
+        loss
+    ])
+
+# Step 6: Display Comparison
+df = pd.DataFrame(results, columns=[
+    "Learning Rate",
+    "Batch Size",
+    "Hidden Layers",
+    "Test Accuracy",
+    "Test Loss"
+])
+
+print("\nHyperparameter Comparison:")
+print(df)
+
+# Step 7: Plot Accuracy Comparison
+plt.figure(figsize=(8, 5))
+
+plt.bar(
+    ["Experiment 1", "Experiment 2", "Experiment 3"],
+    df["Test Accuracy"]
+)
+
+plt.xlabel("Experiments")
+plt.ylabel("Test Accuracy")
+plt.title("Hyperparameter Tuning - Accuracy Comparison")
+plt.show()
+
+# Step 8: Plot Loss Comparison
+plt.figure(figsize=(8, 5))
+
+plt.bar(
+    ["Experiment 1", "Experiment 2", "Experiment 3"],
+    df["Test Loss"]
+)
+
+plt.xlabel("Experiments")
+plt.ylabel("Test Loss")
+plt.title("Hyperparameter Tuning - Loss Comparison")
+plt.show()  
+
+%load_ext tensorboard
+%tensorboard --logdir logs
